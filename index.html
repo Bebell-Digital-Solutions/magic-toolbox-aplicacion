@@ -1,0 +1,955 @@
+
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic Toolbox - Enhanced</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                        poppins: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        'magic-purple': '#6A0DAD',
+                        'magic-purple-light': '#8A2BE2',
+                        'magic-teal': '#00BFA5',
+                        'magic-teal-light': '#48D1CC',
+                        'slate': {
+                            800: '#1e293b',
+                            850: '#17202A', // Custom dark background
+                            900: '#0f172a',
+                        },
+                    },
+                    backgroundImage: {
+                        'magic-gradient': 'linear-gradient(to right, #8A2BE2, #00BFA5)',
+                    },
+                    boxShadow: {
+                        'card-light': '0 5px 15px rgba(0, 0, 0, 0.08)',
+                        'card-dark': '0 5px 15px rgba(255, 255, 255, 0.05)',
+                        'card-hover-light': '0 8px 25px rgba(0, 0, 0, 0.12)',
+                        'card-hover-dark': '0 8px 25px rgba(255, 255, 255, 0.08)',
+                        'sidebar-light': '5px 0px 15px rgba(0,0,0,0.1)',
+                        'sidebar-dark': '5px 0px 15px rgba(0,0,0,0.25)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .gradient-text {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .sidebar-item.active {
+            background-image: linear-gradient(to right, theme('colors.magic-purple'), theme('colors.magic-teal'));
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+        }
+         .sidebar-item.active i[data-lucide] { 
+            color: white !important; 
+        }
+        /* Removed light theme hover for sidebar items */
+        .dark .sidebar-item:not(.active):hover {
+            background-color: theme('colors.slate.700');
+        }
+
+        .tool-card {
+            transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
+        }
+        .tool-card:hover {
+            transform: translateY(-6px);
+        }
+        
+        .modal-content-anim { 
+             animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: theme('colors.slate.300');
+            border-radius: 3px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: theme('colors.slate.600');
+        }
+
+        .view-mode-btn.active {
+            background-color: theme('colors.magic-purple');
+            color: white;
+        }
+        .dark .view-mode-btn.active {
+             background-color: theme('colors.magic-teal');
+        }
+        /* Styles for list view items */
+        .tool-card-list-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem; 
+        }
+        .tool-card-list-item .tool-icon-container {
+             flex-shrink: 0;
+        }
+        .tool-card-list-item .tool-content {
+            flex-grow: 1;
+            min-width: 0; 
+        }
+        .tool-card-list-item .tool-actions {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column; 
+            gap: 0.5rem; 
+        }
+        @media (min-width: 640px) { /* sm breakpoint */
+            .tool-card-list-item .tool-actions {
+                flex-direction: row; 
+            }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/"
+  }
+}
+</script>
+</head>
+<body class="font-inter">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+
+    <script type="module">
+      import React, { useState, useEffect, useCallback, useMemo } from 'react';
+      import ReactDOM from 'react-dom/client';
+
+      // --- START OF TYPES ---
+      // interface Subcategory, Tool, Category, ViewMode from types.ts
+      // declare global window for Lucide from types.ts
+      // --- END OF TYPES ---
+
+      // --- START OF CONSTANTS ---
+      // iconsList, sampleTags, generateToolName, generateToolData
+      // ALL_TOOLS_CATEGORY_ID, ALL_TOOLS_CATEGORY_NAME, ALL_TOOLS_CATEGORY_DESCRIPTION, ALL_TOOLS_CATEGORY_ICON
+      // from constants.ts
+      // --- END OF CONSTANTS ---
+
+      // --- START OF HOOKS ---
+      // useDarkMode hook from hooks/useDarkMode.ts
+      // --- END OF HOOKS ---
+
+      // --- START OF COMPONENTS ---
+      // Sidebar component from components/Sidebar.tsx
+      // ToolCard component from components/ToolCard.tsx
+      // ToolDetailModal component from components/ToolDetailModal.tsx
+      // Footer component from components/Footer.tsx
+      // MainContentArea component from components/MainContentArea.tsx
+      // --- END OF COMPONENTS ---
+
+      // --- START OF APP.TSX ---
+      // App component from App.tsx
+      // --- END OF APP.TSX ---
+      
+      // Main Application Logic
+      
+      // TYPES
+      
+      // CONSTANTS
+      const iconsList = ['aperture', 'axe', 'atom', 'award', 'anchor', 'airplay', 'activity', 'accessibility', 'album', 'archive', 'blender', 'bold', 'bug', 'cake', 'calculator', 'calendar', 'camera', 'clipboard', 'cloud', 'cog', 'compass', 'cpu', 'crop', 'database', 'disc', 'droplet', 'edit', 'feather', 'figma', 'film', 'filter', 'flag', 'folder', 'gift', 'globe', 'grid', 'hash', 'headphones', 'heart', 'home', 'image', 'inbox', 'key', 'layers', 'layout', 'link', 'loader', 'lock', 'map', 'maximize', 'mic', 'minimize', 'monitor', 'moon', 'mouse-pointer', 'music', 'navigation', 'package', 'paperclip', 'pause', 'pen-tool', 'percent', 'pie-chart', 'play', 'power', 'printer', 'radio', 'refresh-cw', 'save', 'scissors', 'search', 'send', 'settings', 'shield', 'shopping-cart', 'shuffle', 'sidebar', 'sliders', 'smartphone', 'smile', 'speaker', 'star', 'sun', 'sunrise', 'sunset', 'tag', 'target', 'terminal', 'thermometer', 'thumbs-up', 'toggle-left', 'tool', 'trash', 'trending-up', 'truck', 'tv', 'umbrella', 'unlock', 'upload', 'user', 'video', 'volume-2', 'watch', 'wifi', 'wind', 'zap', 'zoom-in', 'brain', 'code-2', 'layout-dashboard', 'server', 'lightbulb', 'network', 'rocket', 'puzzle', 'library', 'siren', 'command', 'compass', 'cpu', 'credit-card', 'crown', 'download-cloud', 'hard-drive', 'help-circle', 'inspection-panel', 'life-buoy', 'mail-check', 'move-3d', 'receipt', 'scan-face', 'shopping-bag', 'shovel', 'sparkles', 'speech', 'table', 'toy-brick', 'verified', 'wallet', 'wand-2', 'webhook', 'workflow', 'folder-kanban', 'settings-2', 'database-zap', 'list-checks', 'message-circle', 'play-circle', 'edit-3', 'bar-chart-big', 'megaphone', 'contact-2', 'landmark', 'shield-check', 'brain-circuit', 'briefcase', 'calendar-check-2', 'archive-restore', 'book-user', 'candlestick-chart', 'codesandbox', 'coins', 'contact-round', 'construction', 'container', 'dollar-sign', 'dumbbell', 'factory', 'file-sliders', 'flask-conical', 'gallery-thumbnails', 'gantt-chart-square', 'gem', 'graduation-cap', 'group', 'history', 'hotel', 'hourglass', 'keyboard', 'lamp-desk', 'languages', 'laptop-2', 'layout-template', 'line-chart', 'list-ordered', 'locate-fixed', 'map-pinned', 'message-square-plus', 'microscope', 'notepad-text', 'paint-bucket', 'palette', 'panel-left-close', 'pilcrow-square', 'plane-takeoff', 'presentation', 'projector', 'receipt-text', 'recycle', 'replace', 'rss', 'ruler', 'scale', 'scan-barcode', 'school-2', 'scroll-text', 'server-cog', 'shapes', 'sheet', 'ship-wheel', 'signpost-big', 'store', 'syringe', 'test-tube-2', 'ticket-percent', 'toggle-right', 'trees', 'user-cog', 'vault', 'volume-x', 'vote', 'wallet-cards', 'webcam', 'wrench', 'youtube', 'clipboard-edit', 'file-text', 'file-search', 'file-json', 'file-code', 'file-spreadsheet', 'file-archive', 'file-audio', 'file-image', 'file-video', 'file-digit', 'file-input', 'file-output', 'file-plus', 'file-minus', 'file-x', 'folder-open', 'folder-plus', 'folder-minus', 'folder-x', 'folder-git-2', 'folder-search', 'folder-sync', 'file-lock-2'];
+      const sampleTags = [['AI', 'Productivity', 'Free'], ['Creative', 'Design', 'Paid'], ['Development', 'Utility', 'Open Source'], ['Marketing', 'Analytics', 'Freemium'], ['Business', 'Collaboration', 'Subscription'], ['Data', 'Research', 'Beta'], ['Automation', 'Efficiency', 'New'], ['Finance', 'Tracking', 'Pro'], ['Security', 'Privacy', 'Essential'], ['Content', 'Writing', 'Popular'], ['Sales', 'CRM', 'Enterprise'], ['Ecommerce', 'Online Store', 'Payments'], ['Social', 'Engagement', 'Community'], ['Project Management', 'Agile', 'Teamwork'], ['Audio', 'Podcast', 'Music Production'], ['Video Editing', 'Filmmaking', 'Streaming']];
+
+      function generateToolName(catName, subCatName, toolIndex) {
+          const catPrefix = catName.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '');
+          const subCatPrefix = subCatName.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '');
+          return `${catPrefix}${subCatPrefix}Tool${toolIndex}`;
+      }
+
+      function generateToolData() {
+          const categoriesRaw = [
+            {
+              id: 'organizacion', name: 'Organización', icon: 'folder-kanban', description: 'Herramientas para estructurar tareas, notas y archivos de manera eficiente.',
+              subcategories: [
+                { id: 'org-tareas', name: 'Gestión de Tareas' }, { id: 'org-notas', name: 'Toma de Notas' },
+                { id: 'org-archivos', name: 'Organización de Archivos' }, { id: 'org-calendarios', name: 'Calendarios y Agendas' }
+              ]
+            },
+            {
+              id: 'productividad', name: 'Productividad', icon: 'zap', description: 'Aplicaciones para optimizar el tiempo y mejorar el rendimiento personal y de equipo.',
+              subcategories: [
+                { id: 'prod-tiempo', name: 'Seguimiento de Tiempo' }, { id: 'prod-automatizacion', name: 'Automatización Personal' },
+                { id: 'prod-enfoque', name: 'Enfoque y Concentración' }, { id: 'prod-contrasenas', name: 'Gestores de Contraseñas' }
+              ]
+            },
+            {
+              id: 'automatizacion', name: 'Automatización', icon: 'settings-2', description: 'Soluciones para automatizar flujos de trabajo y procesos repetitivos.',
+              subcategories: [
+                { id: 'auto-flujos', name: 'Flujos de Trabajo' }, { id: 'auto-integracion', name: 'Integración de Apps' },
+                { id: 'auto-bots', name: 'Bots y Asistentes' }, { id: 'auto-marketing', name: 'Marketing Automation' }
+              ]
+            },
+            {
+              id: 'administracion', name: 'Administración', icon: 'archive', description: 'Herramientas para la gestión documental, inventarios y bases de conocimiento.',
+              subcategories: [
+                { id: 'admin-documental', name: 'Gestión Documental' }, { id: 'admin-inventarios', name: 'Control de Inventarios' },
+                { id: 'admin-conocimiento', name: 'Bases de Conocimiento' }, { id: 'admin-clientes', name: 'Gestión de Clientes' }
+              ]
+            },
+            {
+              id: 'investigacion-data', name: 'Investigación y Data', icon: 'database-zap', description: 'Plataformas para análisis, visualización de datos y recolección de información.',
+              subcategories: [
+                { id: 'invdata-analisis', name: 'Análisis de Datos' }, { id: 'invdata-visualizacion', name: 'Visualización de Datos' },
+                { id: 'invdata-encuestas', name: 'Encuestas y Formularios' }, { id: 'invdata-scraping', name: 'Web Scraping' }
+              ]
+            },
+            {
+              id: 'gestion-proyectos', name: 'Gestión de Proyectos', icon: 'list-checks', description: 'Software para planificar, seguir y colaborar en proyectos de cualquier tamaño.',
+              subcategories: [
+                { id: 'gp-kanban', name: 'Tableros Kanban' }, { id: 'gp-gantt', name: 'Diagramas de Gantt' },
+                { id: 'gp-hitos', name: 'Seguimiento de Hitos' }, { id: 'gp-colaboracion', name: 'Colaboración en Proyectos' }
+              ]
+            },
+            {
+              id: 'comunicacion', name: 'Comunicación', icon: 'message-circle', description: 'Medios para la interacción efectiva: mensajería, videoconferencias y más.',
+              subcategories: [
+                { id: 'com-mensajeria', name: 'Mensajería Instantánea' }, { id: 'com-video', name: 'Videoconferencias' },
+                { id: 'com-foros', name: 'Foros y Comunidades' }, { id: 'com-email', name: 'Gestión de Email' }
+              ]
+            },
+            {
+              id: 'colaboracion', name: 'Colaboración', icon: 'users', description: 'Herramientas para trabajar en equipo, compartir documentos y gestionar versiones.',
+              subcategories: [
+                { id: 'colab-docs', name: 'Documentos Compartidos' }, { id: 'colab-pizarras', name: 'Pizarras Virtuales' },
+                { id: 'colab-versiones', name: 'Control de Versiones' }, { id: 'colab-espacios', name: 'Espacios de Trabajo' }
+              ]
+            },
+            {
+              id: 'diseno-grafico', name: 'Diseño Gráfico', icon: 'figma', description: 'Software para creación visual, edición de imágenes y diseño de interfaces.',
+              subcategories: [
+                { id: 'dg-edicionimg', name: 'Edición de Imágenes' }, { id: 'dg-vectorial', name: 'Diseño Vectorial' },
+                { id: 'dg-prototipado', name: 'Prototipado UI/UX' }, { id: 'dg-colores', name: 'Paletas de Colores' }
+              ]
+            },
+            {
+              id: 'audio-video', name: 'Audio y Video', icon: 'play-circle', description: 'Herramientas para producción y edición multimedia, música y streaming.',
+              subcategories: [
+                { id: 'av-edicionvid', name: 'Edición de Video' }, { id: 'av-prodmusica', name: 'Producción Musical' },
+                { id: 'av-grabpantalla', name: 'Grabación de Pantalla' }, { id: 'av-streaming', name: 'Plataformas de Streaming' }
+              ]
+            },
+            {
+              id: 'redaccion-copywriting', name: 'Redacción y Copywriting', icon: 'edit-3', description: 'Asistentes para escritura persuasiva, corrección gramatical y generación de ideas.',
+              subcategories: [
+                { id: 'rc-correctores', name: 'Correctores Gramaticales' }, { id: 'rc-ideas', name: 'Generadores de Ideas' },
+                { id: 'rc-legibilidad', name: 'Análisis de Legibilidad' }, { id: 'rc-storytelling', name: 'Herramientas de Storytelling' }
+              ]
+            },
+            {
+              id: 'seo-analitica', name: 'SEO y Analítica', icon: 'bar-chart-big', description: 'Plataformas para optimización en buscadores y análisis de tráfico web.',
+              subcategories: [
+                { id: 'seo-keywords', name: 'Investigación de Keywords' }, { id: 'seo-auditoria', name: 'Auditoría SEO' },
+                { id: 'seo-ranking', name: 'Seguimiento de Ranking' }, { id: 'seo-analisisweb', name: 'Análisis Web' }
+              ]
+            },
+            {
+              id: 'publicidad', name: 'Publicidad', icon: 'megaphone', description: 'Herramientas para gestión de campañas publicitarias, PPC y diseño de creatividades.',
+              subcategories: [
+                { id: 'pub-anuncios', name: 'Gestión de Anuncios' }, { id: 'pub-ppc', name: 'Plataformas PPC' },
+                { id: 'pub-creatividades', name: 'Diseño de Creatividades' }, { id: 'pub-analisis', name: 'Análisis de Campañas' }
+              ]
+            },
+            {
+              id: 'redes-sociales', name: 'Redes Sociales', icon: 'contact-2', description: 'Gestión, programación y análisis de contenido en plataformas sociales.',
+              subcategories: [
+                { id: 'rs-programacion', name: 'Programación de Posts' }, { id: 'rs-monitorizacion', name: 'Monitorización Social' },
+                { id: 'rs-analisis', name: 'Análisis de Redes' }, { id: 'rs-contenido', name: 'Creación de Contenido' }
+              ]
+            },
+            {
+              id: 'email-marketing', name: 'Email Marketing', icon: 'mail-check', description: 'Plataformas para campañas de email, automatización y diseño de newsletters.',
+              subcategories: [
+                { id: 'em-plataformas', name: 'Plataformas de Email' }, { id: 'em-automatizacion', name: 'Automatización de Correos' },
+                { id: 'em-plantillas', name: 'Diseño de Plantillas' }, { id: 'em-analisis', name: 'Análisis de Envíos' }
+              ]
+            },
+            {
+              id: 'ventas-crm', name: 'Ventas y CRM', icon: 'users', description: 'Software para la gestión de relaciones con clientes y procesos de ventas.',
+              subcategories: [
+                { id: 'vcrm-leads', name: 'Gestión de Leads' }, { id: 'vcrm-oportunidades', name: 'Seguimiento de Oportunidades' },
+                { id: 'vcrm-automatizacion', name: 'Automatización de Ventas' }, { id: 'vcrm-informes', name: 'Informes de Ventas' }
+              ]
+            },
+            {
+              id: 'ecommerce', name: 'Ecommerce', icon: 'shopping-cart', description: 'Soluciones para crear tiendas online, gestionar pagos e inventario.',
+              subcategories: [
+                { id: 'eco-plataformas', name: 'Plataformas de Tienda' }, { id: 'eco-pagos', name: 'Pasarelas de Pago' },
+                { id: 'eco-inventario', name: 'Gestión de Inventario' }, { id: 'eco-marketing', name: 'Marketing para Ecommerce' }
+              ]
+            },
+            {
+              id: 'finanzas', name: 'Finanzas', icon: 'landmark', description: 'Herramientas para facturación, contabilidad, presupuestos y gestión de gastos.',
+              subcategories: [
+                { id: 'fin-facturacion', name: 'Facturación' }, { id: 'fin-contabilidad', name: 'Contabilidad' },
+                { id: 'fin-presupuestos', name: 'Presupuestos' }, { id: 'fin-gastos', name: 'Gestión de Gastos' }
+              ]
+            },
+            {
+              id: 'proteccion-seguridad', name: 'Protección y Seguridad', icon: 'shield-check', description: 'Recursos para ciberseguridad, VPNs, copias de seguridad y privacidad.',
+              subcategories: [
+                { id: 'ps-antivirus', name: 'Antivirus y Malware' }, { id: 'ps-vpn', name: 'VPNs' },
+                { id: 'ps-backups', name: 'Copias de Seguridad' }, { id: 'ps-privacidad', name: 'Gestores de Privacidad' }
+              ]
+            },
+            {
+              id: 'creacion-ia', name: 'Creación con IA', icon: 'brain-circuit', description: 'Inteligencia artificial para generar texto, imágenes, audio y código.',
+              subcategories: [
+                { id: 'cia-texto', name: 'Generadores de Texto' }, { id: 'cia-imagenes', name: 'Generadores de Imágenes' },
+                { id: 'cia-voz', name: 'Asistentes de Voz' }, { id: 'cia-codigo', name: 'Herramientas de Código' }
+              ]
+            },
+            {
+              id: 'herramientas-freelancer', name: 'Herramientas Freelancer', icon: 'briefcase', description: 'Utilidades para freelancers: contratos, propuestas, tiempo y pagos.',
+              subcategories: [
+                { id: 'hf-contratos', name: 'Gestión de Contratos' }, { id: 'hf-propuestas', name: 'Creación de Propuestas' },
+                { id: 'hf-tiempo', name: 'Seguimiento de Tiempo' }, { id: 'hf-pagos', name: 'Plataformas de Pago' }
+              ]
+            },
+            {
+              id: 'formularios-reservas', name: 'Formularios y Reservas', icon: 'calendar-check-2', description: 'Sistemas para crear formularios, gestionar reservas, citas y encuestas.',
+              subcategories: [
+                { id: 'fr-formularios', name: 'Creación de Formularios' }, { id: 'fr-sistemasreservas', name: 'Sistemas de Reservas' },
+                { id: 'fr-citas', name: 'Gestión de Citas' }, { id: 'fr-encuestas', name: 'Encuestas de Satisfacción' }
+              ]
+            }
+          ];
+
+          const data = categoriesRaw.map((cat, catIndex) => {
+              const tools = [];
+              cat.subcategories.forEach((subCat, subCatIndex) => {
+                  for (let j = 1; j <= 4; j++) {
+                      const toolId = `${cat.id}-${subCat.id}-tool-${j}`;
+                      const toolNameStr = generateToolName(cat.name, subCat.name, j);
+                      const combinedIndex = (catIndex * 20) + (subCatIndex * 4) + j -1;
+                      const iconIndex = combinedIndex % iconsList.length;
+                      const toolIcon = iconsList[iconIndex];
+                      const tagIndex = combinedIndex % sampleTags.length;
+                      const currentSampleTags = sampleTags[tagIndex];
+                      
+                      tools.push({
+                          id: toolId,
+                          name: toolNameStr,
+                          description: `Herramienta ${toolNameStr.toLowerCase()} para ${subCat.name.toLowerCase()} dentro de ${cat.name}. Ideal para optimizar ${subCat.name.split(' ')[0].toLowerCase()}.`,
+                          icon: toolIcon,
+                          category: cat.name,
+                          categoryId: cat.id,
+                          subcategory: subCat.id,
+                          subcategoryName: subCat.name,
+                          tags: currentSampleTags,
+                          externalUrl: `https://example.com/magic-toolbox/${toolId.replace(/_/g, '-')}`,
+                          details: `<p>Información detallada sobre <strong>${toolNameStr}</strong>.</p><p>Esta herramienta está diseñada específicamente para asistir con varias tareas relacionadas con ${subCat.name.toLowerCase()} en el ámbito de ${cat.name}.</p><h5>Características Clave:</h5><ul><li>Interfaz amigable e intuitiva.</li><li>Funcionalidades avanzadas para ${cat.name.split(" ")[0]}.</li><li>Soporte para ${subCat.name.split(" ")[0].toLowerCase()} y más.</li><li>Actualizaciones periódicas con nuevas mejoras.</li><li>Amplia documentación y soporte comunitario.</li></ul><p>Perfecta tanto para profesionales experimentados como para usuarios que se inician en la optimización de sus procesos de ${subCat.name.toLowerCase()}. Potencia tu productividad y alcanza tus objetivos más rápido con ${toolNameStr}.</p>`
+                      });
+                  }
+              });
+              return { ...cat, tools };
+          });
+          return data;
+      }
+
+      const ALL_TOOLS_CATEGORY_ID = 'all';
+      const ALL_TOOLS_CATEGORY_NAME = 'Todas las Herramientas';
+      const ALL_TOOLS_CATEGORY_DESCRIPTION = 'Explora todas las herramientas disponibles de cada categoría.';
+      const ALL_TOOLS_CATEGORY_ICON = 'layout-grid';
+      
+      // HOOKS
+      function useDarkMode() {
+        const [isDarkMode, setIsDarkMode] = useState(() => {
+          if (typeof window !== 'undefined') {
+            const storedTheme = localStorage.getItem('magic_toolbox_theme');
+            if (storedTheme) {
+              return storedTheme === 'dark';
+            }
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+          }
+          return false; 
+        });
+
+        const toggleDarkMode = useCallback(() => {
+          setIsDarkMode(prevMode => !prevMode);
+        }, []);
+
+        useEffect(() => {
+          const htmlEl = document.documentElement;
+          if (isDarkMode) {
+            htmlEl.classList.add('dark');
+            localStorage.setItem('magic_toolbox_theme', 'dark');
+          } else {
+            htmlEl.classList.remove('dark');
+            localStorage.setItem('magic_toolbox_theme', 'light');
+          }
+        }, [isDarkMode]);
+        
+        const themeToggleText = isDarkMode ? 'Switch to Light' : 'Switch to Dark';
+        return [isDarkMode, toggleDarkMode, themeToggleText];
+      }
+
+      // COMPONENTS
+      const Sidebar = ({
+        categories,
+        currentCategory,
+        onSelectCategory,
+        isSidebarOpen,
+        toggleSidebar,
+        isDarkMode,
+        toggleDarkMode,
+        themeToggleText,
+      }) => {
+        return (
+          React.createElement('aside', {
+            id: "magicToolboxSidebar",
+            className: `w-72 bg-white dark:bg-slate-800 p-5 shadow-sidebar-light dark:shadow-sidebar-dark fixed top-0 left-0 h-full overflow-y-auto transition-transform duration-300 ease-in-out lg:translate-x-0 z-40 flex flex-col custom-scrollbar ${
+              isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            }`
+          },
+            React.createElement('div', { className: "flex flex-col items-center mb-8" },
+              React.createElement('img', {
+                src: "https://bucket.mlcdn.com/a/3336/3336910/images/64a9a08e0631ac997992955f1f985a7cc9c35b6c.png",
+                alt: "Magic Toolbox Logo",
+                className: "w-16 h-16 mb-3 rounded-full"
+              }),
+              React.createElement('div', { className: "flex items-center justify-between w-full" },
+                React.createElement('h1', { className: "text-2xl font-poppins font-bold gradient-text bg-magic-gradient flex-grow text-center" }, "Magic Toolbox"),
+                React.createElement('button', {
+                  className: "lg:hidden text-gray-500 dark:text-slate-400",
+                  onClick: toggleSidebar,
+                  'aria-label': "Close sidebar"
+                }, React.createElement('i', { 'data-lucide': "x", className: "w-5 h-5" }))
+              )
+            ),
+            React.createElement('nav', { className: "flex-grow" },
+              React.createElement('ul', { className: "space-y-2.5" },
+                React.createElement('li', null,
+                  React.createElement('a', {
+                    href: "#",
+                    onClick: (e) => { e.preventDefault(); onSelectCategory(ALL_TOOLS_CATEGORY_ID); },
+                    className: `sidebar-item flex items-center py-2.5 px-4 rounded-lg transition-all duration-200 ease-in-out group ${
+                      currentCategory === ALL_TOOLS_CATEGORY_ID ? 'active' : 'text-gray-700 dark:text-slate-300 dark:hover:bg-slate-700' // Removed light hover:bg-slate-100
+                    }`,
+                    'aria-current': currentCategory === ALL_TOOLS_CATEGORY_ID ? 'page' : 'false'
+                  },
+                    React.createElement('i', {
+                      'data-lucide': ALL_TOOLS_CATEGORY_ICON,
+                      className: `w-5 h-5 mr-3 transition-colors duration-200 ${ // Removed light group-hover:text-magic-purple-light
+                        currentCategory === ALL_TOOLS_CATEGORY_ID ? 'text-white' : 'text-magic-purple dark:text-magic-teal dark:group-hover:text-magic-teal-light'
+                      }`
+                    }),
+                    React.createElement('span', { className: "text-sm font-medium" }, ALL_TOOLS_CATEGORY_NAME)
+                  )
+                )
+              ),
+              React.createElement('hr', { className: "my-3 border-slate-200 dark:border-slate-700" }),
+              React.createElement('ul', { className: "space-y-2.5", id: "categoryList" },
+                categories.map((category) => (
+                  React.createElement('li', { key: category.id },
+                    React.createElement('a', {
+                      href: "#",
+                      onClick: (e) => { e.preventDefault(); onSelectCategory(category.id); },
+                      className: `sidebar-item flex items-center py-2.5 px-4 rounded-lg transition-all duration-200 ease-in-out group ${
+                        currentCategory === category.id ? 'active' : 'text-gray-700 dark:text-slate-300 dark:hover:bg-slate-700' // Removed light hover:bg-slate-100
+                      }`,
+                      'aria-current': currentCategory === category.id ? 'page' : 'false'
+                    },
+                      React.createElement('i', {
+                        'data-lucide': category.icon,
+                         className: `w-5 h-5 mr-3 transition-colors duration-200 ${ // Removed light group-hover:text-magic-purple-light
+                          currentCategory === category.id ? 'text-white' : 'text-magic-purple dark:text-magic-teal dark:group-hover:text-magic-teal-light'
+                        }`
+                      }),
+                      React.createElement('span', { className: "text-sm font-medium" }, category.name)
+                    )
+                  )
+                ))
+              )
+            ),
+            React.createElement('div', { className: "mt-auto pt-5 border-t border-gray-200 dark:border-slate-700" },
+              React.createElement('button', {
+                onClick: toggleDarkMode,
+                'aria-label': "Toggle theme",
+                className: "w-full flex items-center justify-center py-2.5 px-4 rounded-lg text-sm font-medium border border-gray-300 dark:border-slate-600 dark:hover:bg-slate-700 transition-colors" // Removed light hover:bg-gray-100
+              },
+                React.createElement('i', { 'data-lucide': "sun", className: `theme-icon-sun w-4 h-4 mr-2 ${isDarkMode ? '' : 'hidden'}` }),
+                React.createElement('i', { 'data-lucide': "moon", className: `theme-icon-moon w-4 h-4 mr-2 ${isDarkMode ? 'hidden' : ''}` }),
+                React.createElement('span', null, themeToggleText)
+              )
+            )
+          )
+        );
+      };
+
+      const ToolCard = ({ tool, viewMode, onOpenModal }) => {
+        if (viewMode === 'grid') {
+          return (
+            React.createElement('div', { className: "tool-card bg-white dark:bg-slate-800 p-5 rounded-xl shadow-card-light dark:shadow-card-dark hover:shadow-card-hover-light dark:hover:shadow-card-hover-dark flex flex-col" },
+              React.createElement('div', { className: "flex items-start mb-4" },
+                React.createElement('div', { className: "p-2.5 bg-gradient-to-br from-magic-purple to-magic-teal rounded-lg mr-4 flex-shrink-0" },
+                  React.createElement('i', { 'data-lucide': tool.icon, className: "w-6 h-6 text-white" })
+                ),
+                React.createElement('div', { className: "min-w-0" },
+                  React.createElement('h3', { className: "text-lg font-poppins font-semibold text-gray-800 dark:text-slate-100 truncate", title: tool.name }, tool.name),
+                  React.createElement('p', { className: "text-xs text-magic-teal dark:text-magic-teal-light font-medium truncate", title: `${tool.category} / ${tool.subcategoryName}` }, `${tool.category} / ${tool.subcategoryName}`)
+                )
+              ),
+              React.createElement('p', { className: "text-sm text-gray-600 dark:text-slate-300 mb-4 flex-grow" }, tool.description.substring(0, 100) + (tool.description.length > 100 ? '...' : '')),
+              React.createElement('div', { className: "flex flex-wrap gap-1.5 mb-5" },
+                tool.tags.map(tag => (
+                  React.createElement('span', { key: tag, className: "text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full" }, tag)
+                ))
+              ),
+              React.createElement('div', { className: "mt-auto flex gap-3" },
+                React.createElement('a', {
+                  href: tool.externalUrl,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  className: "flex-1 inline-flex items-center justify-center px-4 py-2 bg-magic-purple text-white text-sm font-medium rounded-lg transition-colors dark:hover:bg-magic-purple-light" // Removed light hover:bg-magic-purple-light
+                }, "Visitar ", React.createElement('i', { 'data-lucide': "external-link", className: "w-3.5 h-3.5 ml-1.5" })),
+                React.createElement('button', {
+                  onClick: () => onOpenModal(tool.id),
+                  className: "flex-1 inline-flex items-center justify-center px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 text-sm font-medium rounded-lg transition-colors" // Removed light hover:bg-slate-100
+                }, "Detalles ", React.createElement('i', { 'data-lucide': "info", className: "w-3.5 h-3.5 ml-1.5" }))
+              )
+            )
+          );
+        }
+
+        // List View
+        return (
+          React.createElement('div', { className: "tool-card tool-card-list-item bg-white dark:bg-slate-800 p-4 rounded-xl shadow-card-light dark:shadow-card-dark hover:shadow-card-hover-light dark:hover:shadow-card-hover-dark" },
+            React.createElement('div', { className: "tool-icon-container p-2.5 bg-gradient-to-br from-magic-purple to-magic-teal rounded-lg" },
+              React.createElement('i', { 'data-lucide': tool.icon, className: "w-6 h-6 text-white" })
+            ),
+            React.createElement('div', { className: "tool-content" },
+              React.createElement('h3', { className: "text-lg font-poppins font-semibold text-gray-800 dark:text-slate-100 truncate", title: tool.name }, tool.name),
+              React.createElement('p', { className: "text-xs text-magic-teal dark:text-magic-teal-light font-medium mb-1 truncate", title: `${tool.category} / ${tool.subcategoryName}` }, `${tool.category} / ${tool.subcategoryName}`),
+              React.createElement('p', { className: "text-sm text-gray-600 dark:text-slate-300 mb-2 truncate", title: tool.description }, tool.description),
+              React.createElement('div', { className: "flex flex-wrap gap-1.5" },
+                tool.tags.map(tag => (
+                  React.createElement('span', { key: tag, className: "text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full" }, tag)
+                ))
+              )
+            ),
+            React.createElement('div', { className: "tool-actions" },
+              React.createElement('a', {
+                href: tool.externalUrl,
+                target: "_blank",
+                rel: "noopener noreferrer",
+                className: "inline-flex items-center justify-center px-3 py-1.5 bg-magic-purple text-white text-xs font-medium rounded-lg transition-colors whitespace-nowrap dark:hover:bg-magic-purple-light" // Removed light hover:bg-magic-purple-light
+              }, "Visitar ", React.createElement('i', { 'data-lucide': "external-link", className: "w-3 h-3 ml-1" })),
+              React.createElement('button', {
+                onClick: () => onOpenModal(tool.id),
+                className: "inline-flex items-center justify-center px-3 py-1.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 text-xs font-medium rounded-lg transition-colors whitespace-nowrap" // Removed light hover:bg-slate-100
+              }, "Detalles ", React.createElement('i', { 'data-lucide': "info", className: "w-3 h-3 ml-1" }))
+            )
+          )
+        );
+      };
+
+      const ToolDetailModal = ({ tool, isOpen, onClose }) => {
+        if (!isOpen || !tool) {
+          return null;
+        }
+
+        const handleBackdropClick = (e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        };
+        
+        const handleContentClick = (e) => {
+          e.stopPropagation();
+        };
+
+        return (
+          React.createElement('div', {
+            id: "toolDetailModal",
+            className: "fixed inset-0 bg-black bg-opacity-60 dark:bg-opacity-75 flex items-center justify-center p-4 z-50",
+            onClick: handleBackdropClick
+          },
+            React.createElement('div', {
+              className: "bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8 modal-content-anim custom-scrollbar",
+              onClick: handleContentClick
+            },
+              React.createElement('div', { className: "flex justify-between items-center mb-4" },
+                React.createElement('h3', { className: "text-2xl font-poppins font-bold text-gray-800 dark:text-slate-100" }, tool.name),
+                React.createElement('button', {
+                  onClick: onClose,
+                  'aria-label': "Close modal",
+                  className: "text-gray-400 dark:text-slate-500 dark:hover:text-slate-300" // Removed light hover:text-gray-600
+                }, React.createElement('i', { 'data-lucide': "x", className: "w-6 h-6" }))
+              ),
+              React.createElement('div', { className: "flex items-center space-x-2 text-sm text-gray-500 dark:text-slate-400 mb-4" },
+                React.createElement('i', { 'data-lucide': tool.icon, className: "w-5 h-5 mr-1.5 text-magic-purple dark:text-magic-teal" }),
+                React.createElement('span', null, `${tool.category} / ${tool.subcategoryName}`)
+              ),
+              React.createElement('div', {
+                className: "text-gray-700 dark:text-slate-300 prose dark:prose-invert max-w-none mb-6",
+                dangerouslySetInnerHTML: { __html: tool.details || `<p>${tool.description}</p>` }
+              }),
+              React.createElement('div', { className: "flex flex-wrap gap-3" },
+                React.createElement('a', {
+                  id: "modalToolLink",
+                  href: tool.externalUrl,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  className: "inline-flex items-center justify-center px-5 py-2.5 bg-magic-purple text-white font-medium rounded-lg transition-colors text-sm dark:hover:bg-magic-purple-light" // Removed light hover:bg-magic-purple-light
+                }, "Visit Tool ", React.createElement('i', { 'data-lucide': "external-link", className: "w-4 h-4 ml-2" })),
+                React.createElement('button', {
+                  onClick: onClose,
+                  className: "inline-flex items-center justify-center px-5 py-2.5 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 dark:hover:bg-slate-700 font-medium rounded-lg transition-colors text-sm" // Removed light hover:bg-gray-100
+                }, "Close")
+              )
+            )
+          )
+        );
+      };
+
+      const Footer = () => {
+        return (
+          React.createElement('footer', { className: "mt-12 pt-8 border-t border-gray-200 dark:border-slate-700 text-center text-sm text-gray-500 dark:text-slate-400" },
+            React.createElement('div', { className: "flex justify-center gap-4 mb-2" },
+              React.createElement('a', { href: "#", className: "dark:hover:text-magic-teal" }, "Privacy Policy"), // Removed light hover:text-magic-purple
+              React.createElement('a', { href: "#", className: "dark:hover:text-magic-teal" }, "Terms of Service") // Removed light hover:text-magic-purple
+            ),
+            React.createElement('p', null, `© ${new Date().getFullYear()} Bebell Digital Solutions. All rights reserved.`)
+          )
+        );
+      };
+      
+      const INITIAL_VISIBLE_SUBCATEGORIES = 4;
+
+      const MainContentArea = ({
+        toolsToDisplay,
+        currentCategoryData,
+        subcategoriesForFilter,
+        currentSubcategory,
+        searchTerm,
+        viewMode,
+        onSearchChange,
+        onSelectSubcategory,
+        onSetViewMode,
+        onOpenModal,
+        toggleSidebar
+      }) => {
+        const categoryName = currentCategoryData?.name || ALL_TOOLS_CATEGORY_NAME;
+        const categoryDescription = currentCategoryData?.description || ALL_TOOLS_CATEGORY_DESCRIPTION;
+
+        const [showAllSubcategories, setShowAllSubcategories] = useState(false);
+
+        useEffect(() => {
+          setShowAllSubcategories(false);
+        }, [subcategoriesForFilter]);
+
+        const toggleShowAllSubcategories = () => {
+          setShowAllSubcategories(prev => !prev);
+        };
+
+        const visibleSubcategories = showAllSubcategories
+          ? subcategoriesForFilter
+          : subcategoriesForFilter.slice(0, INITIAL_VISIBLE_SUBCATEGORIES);
+
+        return (
+          React.createElement('main', { className: "flex-1 p-6 md:p-8 lg:p-10 transition-all duration-300 ease-in-out flex flex-col" },
+            React.createElement('div', { className: "lg:hidden flex items-center justify-between mb-6" },
+              React.createElement('h1', { className: "text-2xl font-poppins font-bold gradient-text bg-magic-gradient" }, "Magic Toolbox"),
+              React.createElement('button', {
+                className: "text-gray-600 dark:text-slate-300",
+                onClick: toggleSidebar,
+                'aria-label': "Open sidebar"
+              }, React.createElement('i', { 'data-lucide': "menu", className: "w-6 h-6" }))
+            ),
+            React.createElement('div', { className: "mb-6" },
+              React.createElement('div', { className: "relative" },
+                React.createElement('input', {
+                  type: "search",
+                  value: searchTerm,
+                  onChange: onSearchChange,
+                  placeholder: "Buscar herramientas por nombre, etiqueta, categoría...",
+                  className: "w-full p-3 pl-10 text-sm border border-gray-300 rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 focus:ring-magic-purple focus:border-magic-purple dark:focus:ring-magic-teal dark:focus:border-magic-teal",
+                  'aria-label': "Buscar herramientas"
+                }),
+                React.createElement('div', { className: "absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" },
+                  React.createElement('i', { 'data-lucide': "search", className: "w-5 h-5 text-gray-400 dark:text-slate-500" })
+                )
+              )
+            ),
+            React.createElement('header', { className: "mb-6" },
+              React.createElement('div', { className: "flex flex-col sm:flex-row justify-between sm:items-center mb-2" },
+                React.createElement('h2', { className: "text-3xl md:text-4xl font-poppins font-bold text-gray-800 dark:text-slate-100 mb-2 sm:mb-0" }, categoryName),
+                React.createElement('div', { className: "flex items-center gap-2" },
+                  React.createElement('button', {
+                    onClick: () => onSetViewMode('grid'),
+                    'aria-label': "Grid view",
+                    className: `view-mode-btn p-2 rounded-md border border-slate-300 dark:border-slate-600 dark:hover:bg-slate-700 ${ // Removed light hover:bg-slate-100
+                      viewMode === 'grid' ? 'active' : ''
+                    }`
+                  }, React.createElement('i', { 'data-lucide': "grid", className: "w-5 h-5" })),
+                  React.createElement('button', {
+                    onClick: () => onSetViewMode('list'),
+                    'aria-label': "List view",
+                    className: `view-mode-btn p-2 rounded-md border border-slate-300 dark:border-slate-600 dark:hover:bg-slate-700 ${ // Removed light hover:bg-slate-100
+                      viewMode === 'list' ? 'active' : ''
+                    }`
+                  }, React.createElement('i', { 'data-lucide': "list", className: "w-5 h-5" }))
+                )
+              ),
+              React.createElement('p', { className: "text-gray-600 dark:text-slate-400 mt-1 text-base" }, categoryDescription)
+            ),
+            React.createElement('div', { className: "mb-6 flex flex-wrap gap-2 items-center" },
+              subcategoriesForFilter.length > 0 && (
+                  React.createElement('button', {
+                      onClick: () => onSelectSubcategory(null),
+                      className: `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      !currentSubcategory
+                          ? 'bg-magic-purple text-white dark:bg-magic-teal dark:text-white'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 dark:hover:bg-slate-600' // Removed light hover:bg-slate-300
+                      }`,
+                      'aria-pressed': !currentSubcategory
+                  }, "Todas")
+              ),
+              visibleSubcategories.map((sub) => (
+                React.createElement('button', {
+                  key: sub.id,
+                  onClick: () => onSelectSubcategory(sub.id),
+                  className: `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    currentSubcategory === sub.id
+                      ? 'bg-magic-purple text-white dark:bg-magic-teal dark:text-white'
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 dark:hover:bg-slate-600' // Removed light hover:bg-slate-300
+                  }`,
+                  'aria-pressed': currentSubcategory === sub.id
+                }, sub.displayName || sub.name)
+              )),
+              subcategoriesForFilter.length > INITIAL_VISIBLE_SUBCATEGORIES && (
+                React.createElement('button', {
+                  onClick: toggleShowAllSubcategories,
+                  className: "px-3 py-1.5 rounded-md text-sm font-medium transition-colors text-magic-purple dark:text-magic-teal dark:hover:bg-magic-teal/10 flex items-center", // Removed light hover:bg-magic-purple/10
+                  'aria-expanded': showAllSubcategories
+                },
+                  showAllSubcategories ? 'Ver Menos' : 'Ver Más',
+                  React.createElement('i', { 'data-lucide': showAllSubcategories ? 'chevron-up' : 'chevron-down', className: "w-4 h-4 ml-1.5" })
+                )
+              ),
+              subcategoriesForFilter.length === 0 && currentCategoryData && (
+                   React.createElement('p', {className: "text-sm text-slate-500 dark:text-slate-400"}, "No hay subcategorías para esta sección.")
+              )
+            ),
+            React.createElement('div', { id: "toolsGrid", className: `flex-grow ${viewMode === 'list' ? 'flex flex-col gap-4' : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6'}` },
+              toolsToDisplay.length > 0 ? (
+                toolsToDisplay.map((tool) => (
+                  React.createElement(ToolCard, { key: tool.id, tool: tool, viewMode: viewMode, onOpenModal: onOpenModal })
+                ))
+              ) : (
+                React.createElement('p', { className: "col-span-full text-center text-gray-500 dark:text-slate-400 py-8" }, "No se encontraron herramientas para esta selección.")
+              )
+            )
+          )
+        );
+      };
+
+      const App = () => {
+        const [toolboxData] = useState(() => generateToolData());
+        const [isDarkMode, toggleDarkMode, themeToggleText] = useDarkMode();
+        
+        const [currentCategoryId, setCurrentCategoryId] = useState(() => 
+          toolboxData.length > 0 ? toolboxData[0].id : ALL_TOOLS_CATEGORY_ID
+        );
+        const [currentSubcategoryId, setCurrentSubcategoryId] = useState(null);
+        const [searchTerm, setSearchTerm] = useState('');
+        
+        const [viewMode, setViewModeState] = useState(() => {
+          if (typeof window !== 'undefined') {
+            return localStorage.getItem('magic_toolbox_view_mode') || 'grid';
+          }
+          return 'grid';
+        });
+
+        const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+        const [isModalOpen, setIsModalOpen] = useState(false);
+        const [selectedToolId, setSelectedToolId] = useState(null);
+
+        const toolsToDisplay = useMemo(() => {
+          let tools = [];
+          if (currentCategoryId === ALL_TOOLS_CATEGORY_ID) {
+            tools = toolboxData.flatMap(cat => cat.tools);
+          } else {
+            const category = toolboxData.find(cat => cat.id === currentCategoryId);
+            if (category) {
+              tools = category.tools;
+            }
+          }
+
+          if (currentSubcategoryId) {
+            tools = tools.filter(tool => tool.subcategory === currentSubcategoryId);
+          }
+
+          const lowerSearchTerm = searchTerm.toLowerCase().trim();
+          if (lowerSearchTerm) {
+            tools = tools.filter(tool => 
+              tool.name.toLowerCase().includes(lowerSearchTerm) ||
+              tool.description.toLowerCase().includes(lowerSearchTerm) ||
+              tool.category.toLowerCase().includes(lowerSearchTerm) ||
+              tool.subcategoryName.toLowerCase().includes(lowerSearchTerm) ||
+              tool.tags.some(tag => tag.toLowerCase().includes(lowerSearchTerm))
+            );
+          }
+          return tools;
+        }, [currentCategoryId, currentSubcategoryId, searchTerm, toolboxData]);
+
+        useEffect(() => {
+          if (window.lucide) {
+            window.lucide.createIcons();
+          }
+        }, [isModalOpen, selectedToolId, toolsToDisplay, viewMode, isDarkMode, isSidebarOpen, currentSubcategoryId]); 
+
+        const handleSelectCategory = useCallback((categoryId) => {
+          setCurrentCategoryId(categoryId);
+          setCurrentSubcategoryId(null);
+          setSearchTerm('');
+          if (window.innerWidth < 1024) { 
+            setIsSidebarOpen(false);
+          }
+        }, []);
+
+        const handleSelectSubcategory = useCallback((subcategoryId) => {
+          setCurrentSubcategoryId(subcategoryId);
+          setSearchTerm('');
+        }, []);
+
+        const handleSearchChange = useCallback((event) => {
+          setSearchTerm(event.target.value);
+        }, []);
+
+        const handleSetViewMode = useCallback((mode) => {
+          setViewModeState(mode);
+          localStorage.setItem('magic_toolbox_view_mode', mode);
+        }, []);
+
+        const toggleSidebarState = useCallback(() => {
+          setIsSidebarOpen(prev => !prev);
+        }, []);
+
+        const handleOpenModal = useCallback((toolId) => {
+          setSelectedToolId(toolId);
+          setIsModalOpen(true);
+        }, []);
+
+        const handleCloseModal = useCallback(() => {
+          setIsModalOpen(false);
+          setSelectedToolId(null);
+        }, []);
+
+        const currentCategoryData = useMemo(() => {
+          if (currentCategoryId === ALL_TOOLS_CATEGORY_ID) {
+            return { name: ALL_TOOLS_CATEGORY_NAME, description: ALL_TOOLS_CATEGORY_DESCRIPTION };
+          }
+          return toolboxData.find(cat => cat.id === currentCategoryId) || null;
+        }, [currentCategoryId, toolboxData]);
+
+        const subcategoriesForFilter = useMemo(() => {
+          let subs = [];
+          let uniqueSubMap = new Map();
+
+          if (currentCategoryId === ALL_TOOLS_CATEGORY_ID) {
+              toolboxData.forEach(cat => {
+                  cat.subcategories.forEach(sub => {
+                      if (!uniqueSubMap.has(sub.id)) {
+                          uniqueSubMap.set(sub.id, { ...sub, displayName: `${cat.name.split(" ")[0]} / ${sub.name}` });
+                      }
+                  });
+              });
+              subs = Array.from(uniqueSubMap.values()).sort((a,b) => (a.displayName || a.name).localeCompare(b.displayName || b.name));
+          } else {
+              const category = toolboxData.find(cat => cat.id === currentCategoryId);
+              if (category) {
+                  subs = category.subcategories.map(s => ({...s, displayName: s.name}));
+              }
+          }
+          return subs;
+        }, [currentCategoryId, toolboxData]);
+
+        const selectedTool = useMemo(() => {
+          if (!selectedToolId) return null;
+          for (const category of toolboxData) {
+              const tool = category.tools.find(t => t.id === selectedToolId);
+              if (tool) return tool;
+          }
+          return null;
+        }, [selectedToolId, toolboxData]);
+
+        return (
+          React.createElement('div', { className: `flex min-h-screen bg-slate-100 dark:bg-slate-850 text-gray-800 dark:text-slate-200`},
+            React.createElement(Sidebar, {
+              categories: toolboxData,
+              currentCategory: currentCategoryId,
+              onSelectCategory: handleSelectCategory,
+              isSidebarOpen: isSidebarOpen,
+              toggleSidebar: toggleSidebarState,
+              isDarkMode: isDarkMode,
+              toggleDarkMode: toggleDarkMode,
+              themeToggleText: themeToggleText
+            }),
+            React.createElement('div', {className: "flex-1 flex flex-col lg:ml-72"},
+              React.createElement(MainContentArea, {
+                toolsToDisplay: toolsToDisplay,
+                currentCategoryData: currentCategoryData ? { name: currentCategoryData.name, description: currentCategoryData.description } : null,
+                subcategoriesForFilter: subcategoriesForFilter,
+                currentSubcategory: currentSubcategoryId,
+                searchTerm: searchTerm,
+                viewMode: viewMode,
+                onSearchChange: handleSearchChange,
+                onSelectSubcategory: handleSelectSubcategory,
+                onSetViewMode: handleSetViewMode,
+                onOpenModal: handleOpenModal,
+                toggleSidebar: toggleSidebarState
+              }),
+              React.createElement(Footer, null)
+            ),
+            React.createElement(ToolDetailModal, {
+              tool: selectedTool,
+              isOpen: isModalOpen,
+              onClose: handleCloseModal
+            })
+          )
+        );
+      };
+
+      const rootElement = document.getElementById('root');
+      if (!rootElement) {
+        throw new Error("Could not find root element to mount to");
+      }
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(React.createElement(React.StrictMode, null, React.createElement(App)));
+
+    </script>
+</body>
+</html>
